@@ -35,6 +35,8 @@ logger.add(stderr, format="<white>{time:HH:mm:ss}</white>"
 #     parser_args.add_argument('-p', dest='count_page', help='How many pages to parse', type=int, action='count_page')
 #     return parser_args.parse_args(sys.argv[1:])
 
+def sort_by_time(date):
+    return datetime.time.fromisoformat(date)
 
 class Wildberries_Parser:
     items = []
@@ -119,13 +121,18 @@ class Wildberries_Parser:
                     price_history = session.get(f'https://wbx-content-v2.wbstatic.net/price-history/{id}.json').json()
                 except json.decoder.JSONDecodeError:
                     price_history = []
-                prices = []
+                prices = {}
                 for price in price_history[::-1]:
                     time = datetime.datetime.fromtimestamp(price.get('dt'))
-                    if time.month == datetime.datetime.now().month:
+                    if time.month == datetime.datetime.now().month-1:
                         price = price.get('price').get('RUB', 0) // 100
                         # prices.append({'time': time, time: price})
-                        add_data[time.strftime('%d.%m.%Y')] = price
+                        # prices.append({time.strftime('%d.%m.%Y'): price})
+                        prices[time.strftime('%d.%m.%Y')] = price
+                        # add_data[time.strftime('%d.%m.%Y')] = price
+                prices = dict(sorted(prices.items(), key=lambda x: x[0]))
+                add_data.update(**prices)
+                # print(dict(prices))
                 # prices.sort(key=lambda dictionary: dictionary['time'])
                 # for price in prices:
                 #     time = price.get('time')
@@ -145,3 +152,4 @@ if __name__ == '__main__':
     a = Wildberries_Parser(url)
     a.get_data_and_parse(10)
     a.write_items_to_excel()
+
